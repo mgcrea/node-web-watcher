@@ -37,7 +37,7 @@ exports.WebWatcher = class WebWatcher {
         ph.createPage((page) => {
           page.set('settings.userAgent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25')
           page.open(config.url, (status) => {
-            log('PhantomJS returned with %d-statusCode in %s-ms.', status, Date.now() - time);
+            log('PhantomJS returned with %s-statusCode in %s-ms.', chalk.cyan(status), chalk.magenta(Date.now() - time));
             page.evaluate(() => document.documentElement.outerHTML, (html) => {
               ph.exit();
               resolve(html);
@@ -60,7 +60,7 @@ exports.WebWatcher = class WebWatcher {
         }
       })
       .spread((res, data) => {
-        log('Request returned with %d-statusCode in %s-ms.', res.statusCode, Date.now() - time);
+        log('Request returned with %s-statusCode in %s-ms.', chalk.cyan(res.statusCode), chalk.magenta(Date.now() - time));
         return data;
       })
       .catch((err) => {
@@ -127,7 +127,7 @@ exports.WebWatcher = class WebWatcher {
     let message = {
       html: [
         '<h2>Diff</h2><p>' + last.diff.replace(/\n/g, '<br>') + '<p>',
-        '<h2>Config</h2><pre>' + JSON.stringify(_.pick(config, 'email', 'url'), null, 2)  + '</pre>',
+        '<h2>Config</h2><pre>' + JSON.stringify(_.pick(config, 'email', 'url', 'query'), null, 2)  + '</pre>',
         '<h2>History</h2><pre>' + JSON.stringify(this.history, null, 2) + '</pre>'
       ].join(''),
       subject: 'Change Alert!',
