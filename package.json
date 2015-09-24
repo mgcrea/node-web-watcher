@@ -1,0 +1,22 @@
+{
+  "name": "web-watcher",
+  "version": "0.2.0",
+  "description": "NodeJS Web watcher tool",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "babel -d lib/ src/",
+    "prepublish": "npm run compile"
+  },
+  "author": "",
+  "license": false,
+  "dependencies": {
+    "bluebird": "^2.10.1",
+    "chalk": "^1.1.1",
+    "cheerio": "^0.19.0",
+    "lodash": "^3.10.1",
+    "mandrill-api": "^1.0.45",
+    "request": "^2.63.0",
+    "yargs": "^3.25.0"
+  }
+}

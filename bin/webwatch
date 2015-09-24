@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+'use strict';
+
+// @cli nodemon -w src -w bin/webwatch -x 'babel-node bin/webwatch watch --host https://news.ycombinator.com'
+// @cli nodemon -w src -x 'npm run compile; webwatch --release'
+
+var Promise = require('bluebird');
+var chalk = require('chalk');
+require('debug-utils');
+var argv = require('yargs')
+  .usage('Usage: $0 <command> [options]')
+  .command('text', 'Watch a request text result')
+  .command('count', 'Watch a request count result')
+  .demand(1)
+  .example('$0 watch -h http://google.com', 'Watch google homepage for changes')
+  .demand('u')
+  .alias('u', 'url')
+  .nargs('u', 1)
+  .describe('u', 'Url to request')
+  .demand('q')
+  .alias('q', 'query')
+  .describe('q', 'Query to perform')
+  .alias('m', 'mandrill', 'mandrill-api-key')
+  .describe('m', 'Mandrill API key')
+  .alias('e', 'email')
+  .describe('e', 'Notified email')
+  .alias('h', 'help')
+  .help('help')
+  .epilog('Copyright 2015')
+  .argv;
+
+var WebWatcher = require('../src').WebWatcher;
+var watcher = new WebWatcher(argv);
