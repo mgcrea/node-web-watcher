@@ -6,7 +6,8 @@
 
 var Promise = require('bluebird');
 var chalk = require('chalk');
-require('debug-utils');
+try { require('debug-utils'); } catch(err) {}
+
 var argv = require('yargs')
   .usage('Usage: $0 <command> [options]')
   .command('text', 'Watch a request text result')
