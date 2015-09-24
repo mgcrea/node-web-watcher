@@ -12,8 +12,8 @@ var _ = require('lodash');
 
 exports.WebWatcher = class WebWatcher {
 
-  constructor(config = {host: 'http://google.com', type: 'GET'}) {
-    this._config = config;
+  constructor(config = {}) {
+    this._config = _.defaults(config, {host: 'http://google.com', type: 'GET', query: 'html', delay: 5000});
     if(config.mandrillApiKey) {
       this.mandrill = new mandrill.Mandrill(config.mandrillApiKey);
     }
@@ -25,7 +25,7 @@ exports.WebWatcher = class WebWatcher {
   }
 
   get delay() {
-    return 5000 + Math.floor(Math.random() * 5000);
+    return (this._config.delay / 2) + Math.floor(Math.random() * (this._config.delay / 2));
   }
 
   _phantom() {
