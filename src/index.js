@@ -5,7 +5,8 @@ var mandrill = require('mandrill-api/mandrill');
 var requestAsync = Promise.promisify(require('request'));
 var cheerio = require('cheerio');
 var chalk = require('chalk');
-var differ = require('node-diff')
+var differ = require('node-diff');
+var phantom = require('phantom');
 var log = console.log.bind(console);
 var _ = require('lodash');
 
@@ -25,6 +26,26 @@ exports.WebWatcher = class WebWatcher {
 
   get delay() {
     return 5000 + Math.floor(Math.random() * 5000);
+  }
+
+  _phantom() {
+    const config = this._config;
+
+    let time = Date.now();
+    return new Promise((resolve, reject) => {
+      phantom.create((ph) => {
+        ph.createPage((page) => {
+          page.set('settings.userAgent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25')
+          page.open(config.url, (status) => {
+            log('PhantomJS returned with %d-statusCode in %s-ms.', status, Date.now() - time);
+            page.evaluate(() => document.documentElement.outerHTML, (html) => {
+              ph.exit();
+              resolve(html);
+            });
+          });
+        });
+      });
+    });
   }
 
   _request() {
@@ -53,7 +74,7 @@ exports.WebWatcher = class WebWatcher {
     const command = config._[0];
 
     let $ = cheerio.load(data);
-    let query = $(config.query);
+    let query = $(config.query || 'html');
     log('Found %s-element%s matching query "%s".', chalk.cyan(query.length), query.length !== 1 ? 's' : '', chalk.yellow(config.query));
 
     switch (command) {
@@ -132,7 +153,7 @@ exports.WebWatcher = class WebWatcher {
     const config = this._config;
 
     return Promise.bind(this)
-      .then(this._request)
+      .then(config.phantomjs ? this._phantom : this._request)
       .then(this._parseData)
       .then(this._compareData)
       .then(this._handleChange)

@@ -17,6 +17,7 @@
     "lodash": "^3.10.1",
     "mandrill-api": "^1.0.45",
     "node-diff": "^0.2.0",
+    "phantom": "^0.7.2",
     "request": "^2.63.0",
     "yargs": "^3.25.0"
   }
