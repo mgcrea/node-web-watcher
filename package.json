@@ -1,6 +1,6 @@
 {
   "name": "web-watcher",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "NodeJS Web watcher tool",
   "main": "lib/index.js",
   "scripts": {
