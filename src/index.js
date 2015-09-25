@@ -95,7 +95,6 @@ exports.WebWatcher = class WebWatcher {
       default:
         throw new Error('Unsupported command ' + command);
     }
-
   }
 
   _compareData(data) {
@@ -140,7 +139,6 @@ exports.WebWatcher = class WebWatcher {
         this.mandrill.messages.send({message: message, async: false}, resolve, reject)
       })
       .then((res) => {
-
         log('Sent email to %s', chalk.yellow(config.email));
       })
       .catch((err) => {

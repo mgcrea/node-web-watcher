@@ -10,8 +10,10 @@ try { require('debug-utils'); } catch(err) {}
 
 var argv = require('yargs')
   .usage('Usage: $0 <command> [options]')
+  .command('html', 'Watch a request html raw result')
   .command('text', 'Watch a request text result')
   .command('count', 'Watch a request count result')
+  .command('sum', 'Watch a request sum\'ed result')
   .demand(1)
   .example('$0 watch -h http://google.com', 'Watch google homepage for changes')
   .demand('u')
