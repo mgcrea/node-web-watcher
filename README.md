@@ -9,7 +9,7 @@ Install globally
 
 Run a watcher
 
-`bin/webwatch text --url https://news.ycombinator.com --query ".score" --mandrill-api-key abcdef --email foo@bar.com`
+`webwatch text --url https://news.ycombinator.com --query ".score" --mandrill-api-key abcdef --email foo@bar.com`
 
 
 ## Help
