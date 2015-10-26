@@ -9,7 +9,7 @@ Install globally
 
 Run a watcher
 
-`nodemon -w src -w bin/webwatch -x 'babel-node bin/webwatch text --url https://news.ycombinator.com --query ".score" --mandrill-api-key abcdef --email foo@bar.com`
+`bin/webwatch text --url https://news.ycombinator.com --query ".score" --mandrill-api-key abcdef --email foo@bar.com`
 
 
 ## Help
@@ -34,7 +34,7 @@ Options:
   -h, --help       Show help                                           [boolean]
 
 Examples:
-  bin/webwatch watch -h http://google.com  Watch google homepage for changes
+  bin/webwatch html -h http://google.com  Watch google homepage for changes
 
 Copyright 2015
 ```
