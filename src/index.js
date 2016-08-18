@@ -1,43 +1,53 @@
-'use strict';
 
-var Promise = require('bluebird');
-var mandrill = require('mandrill-api/mandrill');
-var requestAsync = Promise.promisify(require('request'));
-var cheerio = require('cheerio');
-var chalk = require('chalk');
-var differ = require('node-diff');
-var phantom = require('phantom');
-var log = console.log.bind(console);
-var _ = require('lodash');
+import Promise from 'bluebird';
+import mandrill from 'mandrill-api/mandrill';
+import request from 'request';
+import cheerio from 'cheerio';
+import chalk from 'chalk';
+import differ from 'differ';
+import phantom from 'phantom';
+import {defaults, size, sum, parseInt, last} from 'lodash';
+
+const log = console.log.bind(console);
+const requestAsync = Promise.promisify(request);
+
+try { require('debug-utils'); } catch (err) {}; // eslint-disable-line
+
+const userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25'; // eslint-disable-line max-len
 
 exports.WebWatcher = class WebWatcher {
 
-  constructor(config = {}) {
-    this._config = _.defaults(config, {host: 'http://google.com', type: 'GET', query: 'html', delay: 5000});
-    if(config.mandrillApiKey) {
-      this.mandrill = new mandrill.Mandrill(config.mandrillApiKey);
+  constructor(options = {}) {
+    this.config = defaults(options, {url: 'http://google.com', type: 'GET', query: 'html', delay: 5000});
+    const {mandrillApiKey} = this.config;
+    if (mandrillApiKey) {
+      this.mandrill = new mandrill.Mandrill(mandrillApiKey);
     }
     this.run();
   }
 
   get history() {
-    return this._history || (this._history = []);
+    return this.$$history || (this.$$history = []);
   }
 
   get delay() {
-    return (this._config.delay / 2) + Math.floor(Math.random() * (this._config.delay / 2));
+    const {delay} = this.config;
+    return (delay / 2) + Math.floor(Math.random() * (delay / 2));
   }
 
-  _phantom() {
-    const config = this._config;
+  phantom() {
+    const {url} = this.config;
 
-    let time = Date.now();
+    const time = Date.now();
     return new Promise((resolve, reject) => {
       phantom.create((ph) => {
         ph.createPage((page) => {
-          page.set('settings.userAgent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25')
-          page.open(config.url, (status) => {
-            log('PhantomJS returned with %s-statusCode in %s-ms.', chalk.cyan(status), chalk.magenta(Date.now() - time));
+          page.set('settings.userAgent', userAgent);
+          page.open(url, (status) => {
+            log('PhantomJS returned with %s-statusCode in %s-ms.',
+              chalk.cyan(status),
+              chalk.magenta(Date.now() - time)
+            );
             page.evaluate(() => document.documentElement.outerHTML, (html) => {
               ph.exit();
               resolve(html);
@@ -48,117 +58,116 @@ exports.WebWatcher = class WebWatcher {
     });
   }
 
-  _request() {
-    const config = this._config;
+  request() {
+    const {type, url} = this.config;
+    log(`Requesting url="${url}"...`);
 
-    let time = Date.now();
-    return requestAsync({
-        type: config.type,
-        url : config.url,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25'
-        }
-      })
-      .spread((res, data) => {
-        log('Request returned with %s-statusCode in %s-ms.', chalk.cyan(res.statusCode), chalk.magenta(Date.now() - time));
-        return data;
-      })
-      .catch((err) => {
-        log('Failed to request host="%s"', config.host);
-        log(chalk.grey(err.stack));
-      });
+    const time = Date.now();
+    const requestOptions = {
+      type,
+      uri: url,
+      headers: {
+        'User-Agent': userAgent
+      }
+    };
+    return requestAsync(requestOptions)
+    .then(res => {
+      log('Request returned with %s-statusCode in %s-ms.',
+        chalk.cyan(res.statusCode),
+        chalk.magenta(Date.now() - time)
+      );
+      return res.body;
+    })
+    .catch((err) => {
+      log('Failed to request url="%s"', url);
+      log(chalk.grey(err.stack));
+    });
   }
 
-  _parseData(data) {
-    const config = this._config;
-    const command = config._[0];
+  parseData(data) {
+    const {query} = this.config;
+    const command = this.config._[0];
 
-    let $ = cheerio.load(data);
-    let query = $(config.query || 'html');
-    log('Found %s-element%s matching query "%s".', chalk.cyan(query.length), query.length !== 1 ? 's' : '', chalk.yellow(config.query));
+    const $ = cheerio.load(data);
+    const $queryEl = $(query || 'html');
+    log('Found %s-element%s matching query "%s".',
+      chalk.cyan($queryEl.length),
+      $queryEl.length !== 1 ? 's' : '', chalk.yellow(query)
+    );
 
     switch (command) {
       case 'html':
-        return query.map(function(i, el) {
-          return $(el).html();
-        }).get().join('\n');
+        return $queryEl.map((i, el) => $(el).html()).get().join('\n');
       case 'text':
-        return query.map(function(i, el) {
-          return $(el).text();
-        }).get().join('\n');
+        return $queryEl.map((i, el) => $(el).text()).get().join('\n');
       case 'count':
-        return _.size(query);
+        return size($queryEl);
       case 'sum':
-        return _.sum(query.map(function(i, el) {
-          return _.parseInt($(el).text());
-        }).get());
+        return sum($queryEl.map((i, el) => parseInt($(el).text())).get());
       default:
-        throw new Error('Unsupported command ' + command);
+        throw new Error(`Unsupported command ${command}`);
     }
   }
 
-  _compareData(data) {
-    const config = this._config;
-
+  compareData(data) {
     if (!this.history.length) {
-      log('Found pristine data:\n' + chalk.grey(data));
-      let diff = differ('', String(data));
-      this.history.push({date: new Date(), count: 1, diff: diff, data: data});
+      log(`Found pristine data:\n${chalk.grey(data)}`);
+      const diff = differ('', String(data));
+      this.history.push({date: new Date(), count: 1, diff, data});
       return false;
-    } else {
-      let last = _.last(this.history);
-      if (last.data == data) {
-        log('Found same data, %s-ms elapsed...', chalk.cyan(Date.now() - last.date));
-        last.count++;
-        return false;
-      } else {
-        let diff = differ(String(last.data), String(data));
-        this.history.push({date: new Date(), count: 1, diff: diff, data: data});
-        return true;
-      }
     }
+
+    const lastHistory = last(this.history);
+    if (lastHistory.data == data) { // eslint-disable-line eqeqeq
+      log('Found same data, %s-ms elapsed...', chalk.cyan(Date.now() - lastHistory.date));
+      lastHistory.count++;
+      return false;
+    }
+
+    const diff = differ(String(last.data), String(data));
+    this.history.push({date: new Date(), count: 1, diff, data});
+    return true;
   }
 
-  _sendEmail() {
-    const config = this._config;
+  sendEmail() {
+    const {email, url, query} = this.config;
 
-    let last = _.last(this.history);
-    let message = {
-      html: [
-        '<h2>Diff</h2><p>' + last.diff.replace(/\n/g, '<br>') + '<p>',
-        '<h2>Config</h2><pre>' + JSON.stringify(_.pick(config, 'email', 'url', 'query'), null, 2)  + '</pre>',
-        '<h2>History</h2><pre>' + JSON.stringify(this.history, null, 2) + '</pre>'
-      ].join(''),
+    const lastHistory = last(this.history);
+    const message = {
+      html: `
+        <h2>Diff</h2><p>${lastHistory.diff.replace(/\n/g, '<br>')}</p>
+        <h2>Config</h2><pre>${JSON.stringify({email, url, query}, null, 2)}</pre>
+        <h2>History</h2><pre>${JSON.stringify(this.history, null, 2)}</pre>
+      `,
       subject: 'Change Alert!',
       from_email: 'notify@webwatcher.io',
       from_name: 'WebWatcher',
-      to: [{email: config.email}],
+      to: [{email}],
       tags: ['change-alert']
     };
     return new Promise((resolve, reject) => {
-        this.mandrill.messages.send({message: message, async: false}, resolve, reject)
-      })
-      .then((res) => {
-        log('Sent email to %s', chalk.yellow(config.email));
-      })
-      .catch((err) => {
-        log('Failed to mail recipient="%s"', 'olouvignes@gmail.com');
-        log(chalk.grey(err.stack));
-      });
+      this.mandrill.messages.send({message, async: false}, resolve, reject);
+    })
+    .then((res) => {
+      log('Sent email to %s', chalk.yellow(email));
+    })
+    .catch((err) => {
+      log('Failed to mail recipient="%s"', 'olouvignes@gmail.com');
+      log(chalk.grey(err.stack));
+    });
   }
 
   run() {
-    const config = this._config;
-
+    const {email, phantomjs} = this.config;
     return Promise.bind(this)
-      .then(config.phantomjs ? this._phantom : this._request)
-      .then(this._parseData)
-      .then(this._compareData)
-      .then(this._handleChange)
+      .then(phantomjs ? this.phantom : this.request)
+      .then(this.parseData)
+      .then(this.compareData)
+      .then(this.handleChange)
       .then((changed) => {
         if (changed) {
-          if (config.email) {
-            this._sendEmail();
+          if (email) {
+            this.sendEmail();
           }
           d('changed!', this.history);
         }
@@ -166,5 +175,4 @@ exports.WebWatcher = class WebWatcher {
       .delay(this.delay)
       .then(this.run);
   }
-
-}
+};
