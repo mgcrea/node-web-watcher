@@ -1,35 +1,57 @@
-# Node XLSX
+# node-web-watcher
 
-[![npm version](https://img.shields.io/npm/v/node-xlsx.svg?style=flat)](https://www.npmjs.com/package/node-xlsx) [![license](https://img.shields.io/github/license/mgcrea/node-xlsx.svg?style=flat)](https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)) [![build status](http://img.shields.io/travis/mgcrea/node-xlsx/master.svg?style=flat)](http://travis-ci.org/mgcrea/node-xlsx) [![dependencies status](https://img.shields.io/david/mgcrea/node-xlsx.svg?style=flat)](https://david-dm.org/mgcrea/node-xlsx) [![devDependencies status](https://img.shields.io/david/dev/mgcrea/node-xlsx.svg?style=flat)](https://david-dm.org/mgcrea/node-xlsx#info=devDependencies) [![coverage status](http://img.shields.io/codeclimate/coverage/github/mgcrea/node-xlsx.svg?style=flat)](https://codeclimate.com/github/mgcrea/node-xlsx) [![climate status](https://img.shields.io/codeclimate/github/mgcrea/node-xlsx.svg?style=flat)](https://codeclimate.com/github/mgcrea/node-xlsx)
+[![npm version](https://img.shields.io/npm/v/web-watcher.svg)](https://www.npmjs.com/package/web-watcher)
+[![license](https://img.shields.io/github/license/mgcrea/node-web-watcher.svg?style=flat)](https://tldrlegal.com/license/mit-license) [![build status](http://img.shields.io/travis/mgcrea/node-web-watcher/master.svg?style=flat)](http://travis-ci.org/mgcrea/node-web-watcher) [![dependencies status](https://img.shields.io/david/mgcrea/node-web-watcher.svg?style=flat)](https://david-dm.org/mgcrea/node-web-watcher) [![devDependencies status](https://img.shields.io/david/dev/mgcrea/node-web-watcher.svg?style=flat)](https://david-dm.org/mgcrea/node-web-watcher#info=devDependencies) [![coverage status](http://img.shields.io/codeclimate/coverage/github/mgcrea/node-web-watcher.svg?style=flat)](https://codeclimate.com/github/mgcrea/node-web-watcher) [![climate status](https://img.shields.io/codeclimate/github/mgcrea/node-web-watcher.svg?style=flat)](https://codeclimate.com/github/mgcrea/node-web-watcher)
+[![npm downloads](https://img.shields.io/npm/dm/web-watcher.svg)](https://www.npmjs.com/package/easyrsa)
 
-Excel file parser/builder that relies on [js-xlsx](https://github.com/SheetJS/js-xlsx).
-
-
+NodeJS agent that monitors a web page and act upon changes.
 
 ## Usage
 
-### Examples
+Install CLI globally
 
-1. Parsing a xlsx from file/buffer, outputs an array of worksheets
-
-```js
-import xlsx from 'node-xlsx';
-// Or var xlsx = require('node-xlsx').default; 
-
-// Parse a buffer
-const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`${__dirname}/myFile.xlsx`));
-// Parse a file
-const workSheetsFromFile = xlsx.parse(`${__dirname}/myFile.xlsx`);
+```bash
+npm i -g webwatch
 ```
 
-1. Building a xlsx
+### Examples
 
-```js
-import xlsx from 'node-xlsx';
-// Or var xlsx = require('node-xlsx').default;
+1. Monitor `news.ycombinator.com` for scores update
 
-const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux']];
-var buffer = xlsx.build([{name: "mySheetName", data: data}]); // Returns a buffer
+```bash
+webwatch text --url https://news.ycombinator.com --query ".score"
+```
+
+1. Monitor `status.github.com` for availability changes and send a mail using mandrill
+
+```bash
+webwatch text --url https://status.github.com --query "#graphs .graph:nth-child(2) .number" --mandrill-api-key abcdef --email foo@bar.com
+```
+
+### Help
+
+```
+$ webwatch --help
+Usage: bin/webwatch <command> [options]
+
+Commands:
+  html   Watch a request html raw result
+  text   Watch a request text result
+  count  Watch a request count result
+  sum    Watch a request sum'ed result
+
+Options:
+  -u, --url        Url to request                                     [required]
+  -q, --query      Query to perform
+  -d, --delay      Delay between queries
+  -m, --mandrill   Mandrill API key
+  -e, --email      Notified email
+  -p, --phantomjs  Use PhantomJS
+  -h, --help       Show help                                           [boolean]
+
+Examples:
+  bin/webwatch html -h http://google.com  Watch google homepage for changes
+
 ```
 
 
@@ -60,24 +82,27 @@ Please submit all pull requests the against master branch. If your unit test con
 
 ## Copyright and license
 
-[Apache License 2.0](https://spdx.org/licenses/Apache-2.0.html)
-
 ```
-Copyright (C) 2012-2014  Olivier Louvignes
+The MIT License
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Copyright (c) 2016 Olivier Louvignes http://olouv.com
 
-       http://www.apache.org/licenses/LICENSE-2.0
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-Except where noted, this license applies to any and all software programs and associated documentation files created by the Original Author and distributed with the Software:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
-Inspired by SheetJS gist examples, Copyright (c) SheetJS.
 ```

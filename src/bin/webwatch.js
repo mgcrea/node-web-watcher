@@ -34,7 +34,6 @@ const argv = yargs
   .describe('p', 'Use PhantomJS')
   .alias('h', 'help')
   .help('help')
-  .epilog('Copyright 2015')
   .argv;
 
 const watcher = new WebWatcher(argv);

@@ -48,7 +48,7 @@ exports.WebWatcher = class WebWatcher {
               chalk.cyan(status),
               chalk.magenta(Date.now() - time)
             );
-            page.evaluate(() => document.documentElement.outerHTML, (html) => {
+            page.evaluate(() => document.documentElement.outerHTML, (html) => { // eslint-disable-line no-undef
               ph.exit();
               resolve(html);
             });
