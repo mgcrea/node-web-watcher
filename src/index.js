@@ -6,7 +6,7 @@ import cheerio from 'cheerio';
 import chalk from 'chalk';
 import differ from 'differ';
 import phantom from 'phantom';
-import {defaults, size, sum, parseInt, last} from 'lodash';
+import {defaults, size, sum, parseInt, last, get} from 'lodash';
 
 const log = console.log.bind(console);
 const requestAsync = Promise.promisify(request);
@@ -88,12 +88,22 @@ exports.WebWatcher = class WebWatcher {
     const {query} = this.config;
     const command = this.config._[0];
 
+    if (command === 'raw') {
+      return data;
+    } else if (command === 'json') {
+      if (query) {
+        const parsedData = JSON.parse(data);
+        return JSON.stringify(get(parsedData, query));
+      }
+      return data;
+    }
+
     const $ = cheerio.load(data);
     const $queryEl = $(query || 'html');
     log('Found %s-element%s matching query "%s".',
       chalk.cyan($queryEl.length),
       $queryEl.length !== 1 ? 's' : '', chalk.yellow(query)
-    );
+      );
 
     switch (command) {
       case 'html':
