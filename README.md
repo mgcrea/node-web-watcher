@@ -25,7 +25,7 @@ webwatch text --url https://news.ycombinator.com --query ".score"
 1. Monitor `status.github.com` for availability changes and send a mail using mandrill
 
 ```bash
-webwatch text --url https://status.github.com --query "#graphs .graph:nth-child(2) .number" --mandrill-api-key abcdef --email foo@bar.com
+webwatch text --url https://status.github.com --query "#graphs .graph:nth-child(2) .number" --smtp smtps://user%40gmail.com:pass@smtp.gmail.com --from foo@bar.com --to bar@baz.com
 ```
 
 ### Help
@@ -35,7 +35,9 @@ $ webwatch --help
 Usage: bin/webwatch <command> [options]
 
 Commands:
-  html   Watch a request html raw result
+  raw   Watch a request raw result
+  json   Watch a request json result
+  html   Watch a request html result
   text   Watch a request text result
   count  Watch a request count result
   sum    Watch a request sum'ed result

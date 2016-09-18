@@ -2,7 +2,6 @@
   "extends": "airbnb-base",
   "parser": "babel-eslint",
   "rules": {
-    "max-len": [2, 120],
     "object-curly-spacing": [2, "never"],
     "comma-dangle": [2, "never"],
     "no-unused-vars": 1,

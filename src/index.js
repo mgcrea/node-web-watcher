@@ -1,6 +1,6 @@
 
 import Promise from 'bluebird';
-import mandrill from 'mandrill-api/mandrill';
+import nodemailer from 'nodemailer';
 import request from 'request';
 import cheerio from 'cheerio';
 import chalk from 'chalk';
@@ -8,20 +8,33 @@ import differ from 'differ';
 import phantom from 'phantom';
 import {defaults, size, sum, parseInt, last, get} from 'lodash';
 
-const log = console.log.bind(console);
-const requestAsync = Promise.promisify(request);
+import {log} from './utils/log';
+// const log = console.log.bind(console);
 
+const requestAsync = Promise.promisify(request);
 try { require('debug-utils'); } catch (err) {}; // eslint-disable-line
 
 const userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25'; // eslint-disable-line max-len
 
-exports.WebWatcher = class WebWatcher {
+export class WebWatcher {
+
+  static defaults = {
+    url: null,
+    type: 'GET',
+    query: 'html',
+    delay: 5000,
+    from: 'webwatcher@mgcrea.io',
+    to: null,
+    smtp: null
+  }
 
   constructor(options = {}) {
-    this.config = defaults(options, {url: 'http://google.com', type: 'GET', query: 'html', delay: 5000});
-    const {mandrillApiKey} = this.config;
-    if (mandrillApiKey) {
-      this.mandrill = new mandrill.Mandrill(mandrillApiKey);
+    if (!options.url) {
+      throw new Error('You must provide an url');
+    }
+    this.config = defaults(options, WebWatcher.defaults);
+    if (options.smtp) {
+      this.transporter = nodemailer.createTransport(options.smtp);
     }
     this.run();
   }
@@ -44,11 +57,11 @@ exports.WebWatcher = class WebWatcher {
         ph.createPage((page) => {
           page.set('settings.userAgent', userAgent);
           page.open(url, (status) => {
-            log('PhantomJS returned with %s-statusCode in %s-ms.',
+            log.info('PhantomJS returned with %s-statusCode in %s-ms.',
               chalk.cyan(status),
               chalk.magenta(Date.now() - time)
             );
-            page.evaluate(() => document.documentElement.outerHTML, (html) => { // eslint-disable-line no-undef
+            page.evaluate(() => document.documentElement.outerHTML, (html) => { // eslint-disable-line
               ph.exit();
               resolve(html);
             });
@@ -60,7 +73,7 @@ exports.WebWatcher = class WebWatcher {
 
   request() {
     const {type, url} = this.config;
-    log(`Requesting url="${url}"...`);
+    log.info(`Requesting url="${url}"...`);
 
     const time = Date.now();
     const requestOptions = {
@@ -71,16 +84,16 @@ exports.WebWatcher = class WebWatcher {
       }
     };
     return requestAsync(requestOptions)
-    .then(res => {
-      log('Request returned with %s-statusCode in %s-ms.',
+    .then((res) => {
+      log.info('Request returned with %s-statusCode in %s-ms.',
         chalk.cyan(res.statusCode),
         chalk.magenta(Date.now() - time)
       );
       return res.body;
     })
     .catch((err) => {
-      log('Failed to request url="%s"', url);
-      log(chalk.grey(err.stack));
+      log.info('Failed to request url="%s"', url);
+      log.info(chalk.grey(err.stack));
     });
   }
 
@@ -100,7 +113,7 @@ exports.WebWatcher = class WebWatcher {
 
     const $ = cheerio.load(data);
     const $queryEl = $(query || 'html');
-    log('Found %s-element%s matching query "%s".',
+    log.info('Found %s-element%s matching query "%s".',
       chalk.cyan($queryEl.length),
       $queryEl.length !== 1 ? 's' : '', chalk.yellow(query)
       );
@@ -121,7 +134,8 @@ exports.WebWatcher = class WebWatcher {
 
   compareData(data) {
     if (!this.history.length) {
-      log(`Found pristine data:\n${chalk.grey(data)}`);
+      log.warn(`Found pristine data:\n${chalk.grey(data)}`);
+      this.sendEmail();
       const diff = differ('', String(data));
       this.history.push({date: new Date(), count: 1, diff, data});
       return false;
@@ -129,8 +143,8 @@ exports.WebWatcher = class WebWatcher {
 
     const lastHistory = last(this.history);
     if (lastHistory.data == data) { // eslint-disable-line eqeqeq
-      log('Found same data, %s-ms elapsed...', chalk.cyan(Date.now() - lastHistory.date));
-      lastHistory.count++;
+      log.info('Found same data, %s-ms elapsed...', chalk.cyan(Date.now() - lastHistory.date));
+      lastHistory.count += 1;
       return false;
     }
 
@@ -140,30 +154,34 @@ exports.WebWatcher = class WebWatcher {
   }
 
   sendEmail() {
-    const {email, url, query} = this.config;
+    const {from, to, url, query} = this.config;
 
-    const lastHistory = last(this.history);
-    const message = {
+    const lastHistory = last(this.history) || {diff: ''};
+    const mailOptions = {
       html: `
         <h2>Diff</h2><p>${lastHistory.diff.replace(/\n/g, '<br>')}</p>
-        <h2>Config</h2><pre>${JSON.stringify({email, url, query}, null, 2)}</pre>
+        <h2>Config</h2><pre>${JSON.stringify({to, url, query}, null, 2)}</pre>
         <h2>History</h2><pre>${JSON.stringify(this.history, null, 2)}</pre>
       `,
-      subject: 'Change Alert!',
-      from_email: 'notify@webwatcher.io',
-      from_name: 'WebWatcher',
-      to: [{email}],
-      tags: ['change-alert']
+      subject: 'WebWatcher Change Alert!',
+      from,
+      to
     };
     return new Promise((resolve, reject) => {
-      this.mandrill.messages.send({message, async: false}, resolve, reject);
+      this.transporter.sendMail(mailOptions, (error, res) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(res);
+      });
     })
     .then((res) => {
-      log('Sent email to %s', chalk.yellow(email));
+      log.info(`Sent email to ${chalk.yellow(to)}`);
     })
     .catch((err) => {
-      log('Failed to mail recipient="%s"', 'olouvignes@gmail.com');
-      log(chalk.grey(err.stack));
+      log.info('Failed to mail recipient="%s"', 'olouvignes@gmail.com');
+      log.info(chalk.grey(err.stack));
     });
   }
 
@@ -176,13 +194,15 @@ exports.WebWatcher = class WebWatcher {
       .then(this.handleChange)
       .then((changed) => {
         if (changed) {
+          log.warn(`Watched content changed!\n${chalk.grey(JSON.stringify(changed, null, 2))}`);
           if (email) {
             this.sendEmail();
           }
-          d('changed!', this.history);
         }
       })
       .delay(this.delay)
       .then(this.run);
   }
-};
+}
+
+export default WebWatcher;
