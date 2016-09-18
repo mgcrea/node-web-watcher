@@ -135,7 +135,6 @@ export class WebWatcher {
   compareData(data) {
     if (!this.history.length) {
       log.warn(`Found pristine data:\n${chalk.grey(data)}`);
-      this.sendEmail();
       const diff = differ('', String(data));
       this.history.push({date: new Date(), count: 1, diff, data});
       return false;
