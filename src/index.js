@@ -4,16 +4,18 @@ import nodemailer from 'nodemailer';
 import request from 'request';
 import cheerio from 'cheerio';
 import chalk from 'chalk';
-import differ from 'differ';
+import {diffChars, diffJson} from 'diff';
 import phantom from 'phantom';
 import {defaults, size, sum, parseInt, last, get} from 'lodash';
 
 import {log} from './utils/log';
 // const log = console.log.bind(console);
 
-const requestAsync = Promise.promisify(request);
-try { require('debug-utils'); } catch (err) {}; // eslint-disable-line
+if (process.env.NODE_ENV === 'development') {
+  require('debug-utils'); // eslint-disable-line
+}
 
+const requestAsync = Promise.promisify(request);
 const userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25'; // eslint-disable-line max-len
 
 export class WebWatcher {
@@ -137,12 +139,14 @@ export class WebWatcher {
   }
 
   compareData(data) {
+    const command = this.config._[0];
+    const differ = command === 'json' ? diffJson : diffChars;
+
     if (!this.history.length) {
       log.warn(`Found pristine data:\n${chalk.grey(data)}`);
       const diff = differ('', String(data));
       this.history.push({date: new Date(), count: 1, diff, data});
-      this.sendEmail();
-      return false;
+      return true;
     }
 
     const lastHistory = last(this.history);
@@ -166,7 +170,7 @@ export class WebWatcher {
     const lastHistory = last(this.history) || {diff: ''};
     const mailOptions = {
       html: `
-        <h2>Diff</h2><p>${lastHistory.diff.replace(/\n/g, '<br>')}</p>
+        <h2>Diff</h2><p>${JSON.stringify(lastHistory.diff)}</p>
         <h2>Config</h2><pre>${JSON.stringify({to, url, query}, null, 2)}</pre>
         <h2>History</h2><pre>${JSON.stringify(this.history, null, 2)}</pre>
       `,

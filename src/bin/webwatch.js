@@ -8,7 +8,9 @@ import chalk from 'chalk';
 import yargs from 'yargs';
 import {WebWatcher} from './..';
 
-// try { require('debug-utils'); } catch(err) {}
+if (process.env.NODE_ENV === 'development') {
+  require('source-map-support').install(); // eslint-disable-line
+}
 
 const argv = yargs
   .usage('Usage: $0 <command> [options]')
