@@ -33,8 +33,8 @@ export class WebWatcher {
       throw new Error('You must provide an url');
     }
     this.config = defaults(options, WebWatcher.defaults);
-    if (options.smtp) {
-      this.transporter = nodemailer.createTransport(options.smtp);
+    if (this.config.smtp) {
+      this.transporter = nodemailer.createTransport(this.config.smtp);
     }
     this.run();
   }
@@ -137,14 +137,11 @@ export class WebWatcher {
   }
 
   compareData(data) {
-    const {email} = this.config;
     if (!this.history.length) {
       log.warn(`Found pristine data:\n${chalk.grey(data)}`);
       const diff = differ('', String(data));
       this.history.push({date: new Date(), count: 1, diff, data});
-      if (email) {
-        this.sendEmail();
-      }
+      this.sendEmail();
       return false;
     }
 
@@ -161,7 +158,10 @@ export class WebWatcher {
   }
 
   sendEmail() {
-    const {from, to, url, query} = this.config;
+    const {smtp, from, to, url, query} = this.config;
+    if (!smtp) {
+      return Promise.resolve();
+    }
 
     const lastHistory = last(this.history) || {diff: ''};
     const mailOptions = {
@@ -193,7 +193,7 @@ export class WebWatcher {
   }
 
   run() {
-    const {email, phantomjs} = this.config;
+    const {phantomjs} = this.config;
     return Promise.bind(this)
       .then(phantomjs ? this.phantom : this.request)
       .then(this.parseData)
@@ -202,9 +202,7 @@ export class WebWatcher {
       .then((changed) => {
         if (changed) {
           log.warn(`Watched content changed!\n${chalk.grey(JSON.stringify(changed, null, 2))}`);
-          if (email) {
-            this.sendEmail();
-          }
+          this.sendEmail();
         }
       })
       .delay(this.delay)
