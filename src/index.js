@@ -105,8 +105,12 @@ export class WebWatcher {
       return data;
     } else if (command === 'json') {
       if (query) {
-        const parsedData = JSON.parse(data);
-        return JSON.stringify(get(parsedData, query));
+        try {
+          const parsedData = JSON.parse(data);
+          return JSON.stringify(get(parsedData, query));
+        } catch (err) {
+          return JSON.stringify({err, data});
+        }
       }
       return data;
     }
