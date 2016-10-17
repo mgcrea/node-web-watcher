@@ -1,7 +1,7 @@
 {
   "name": "web-watcher",
   "author": "Olivier Louvignes <olivier@mg-crea.com>",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "NodeJS Web watcher tool",
   "main": "lib/index.js",
   "bin": {
