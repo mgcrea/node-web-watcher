@@ -137,10 +137,14 @@ export class WebWatcher {
   }
 
   compareData(data) {
+    const {email} = this.config;
     if (!this.history.length) {
       log.warn(`Found pristine data:\n${chalk.grey(data)}`);
       const diff = differ('', String(data));
       this.history.push({date: new Date(), count: 1, diff, data});
+      if (email) {
+        this.sendEmail();
+      }
       return false;
     }
 
