@@ -107,12 +107,8 @@ export class WebWatcher {
       return data;
     } else if (command === 'json') {
       if (query) {
-        try {
-          const parsedData = JSON.parse(data);
-          return JSON.stringify(get(parsedData, query));
-        } catch (err) {
-          return JSON.stringify({err, data});
-        }
+        const parsedData = JSON.parse(data);
+        return JSON.stringify(get(parsedData, query));
       }
       return data;
     }
@@ -208,6 +204,10 @@ export class WebWatcher {
           log.warn(`Watched content changed!\n${chalk.grey(JSON.stringify(changed, null, 2))}`);
           this.sendEmail();
         }
+      })
+      .catch((err) => {
+        log.info('Encountered uncaught error', err);
+        log.info(chalk.grey(err.stack));
       })
       .delay(this.delay)
       .then(this.run);
